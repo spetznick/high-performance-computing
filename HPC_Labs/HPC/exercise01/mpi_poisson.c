@@ -66,20 +66,25 @@ void stop_timer();
 void print_timer();
 
 void Setup_Args(int argc, char **argv) {
-    if (argc < 3) {
-        printf("missing argument: x_size y_size input_filename");
-        exit(EXIT_FAILURE);
-    }
-    if (argc >= 3) {
-        printf("args 3\n");
+    /* Retrieve the number of processes */
+    MPI_Comm_size(MPI_COMM_WORLD,
+                  &P); /* find out how many processes there are */
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+    /* Calculate the number of processes per column and per row for the grid */
+    if (argc > 2) {
+        P_grid[X_DIR] = atoi(argv[1]);
+        P_grid[Y_DIR] = atoi(argv[2]);
+        if (P_grid[X_DIR] * P_grid[Y_DIR] != P)
+            Debug("ERROR Proces grid dimensions do not match with P ", 1);
         strncpy(input_filename, "input.dat", 20);
+    } else {
+        Debug("ERROR Wrong parameter input", 1);
     }
+    // optional parameters
     if (argc >= 4) {
-        printf("args 4\n");
         omega = atof(argv[3]);
     }
     if (argc >= 5) {
-        printf("args 5\n");
         strncpy(input_filename, argv[4], 20);
     }
 }
@@ -154,26 +159,9 @@ void Debug(char *mesg, int terminate) {
     if (terminate) exit(EXIT_FAILURE);
 }
 
-void Setup_Proc_Grid(int argc, char **argv) {
+void Setup_Proc_Grid() {
     int wrap_around[2];
     int reorder;
-
-    Debug("My_MPI_Init", 0);
-    /* Retrieve the number of processes */
-    // Might need to change the COMMUNICATOR to grid
-    MPI_Comm_size(MPI_COMM_WORLD,
-                  &P); /* find out how many processes there are */
-    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
-    /* Calculate the number of processes per column and per row for the grid */
-    if (argc > 2) {
-        P_grid[X_DIR] = atoi(argv[1]);
-        P_grid[Y_DIR] = atoi(argv[2]);
-        if (P_grid[X_DIR] * P_grid[Y_DIR] != P)
-            Debug("ERROR Proces grid dimensions do not match with P ", 1);
-    } else {
-        Debug("ERROR Wrong parameter input", 1);
-    }
-
     /* Create process topology (2D grid) */
     wrap_around[X_DIR] = 0;
     wrap_around[Y_DIR] = 0; /* do not connect first and last process */
@@ -364,9 +352,9 @@ void Clean_Up() {
 int main(int argc, char **argv) {
     // Initialize MPI, find out MPI communicator size and process
     // rank
-    Setup_Args(argc, argv);
     MPI_Init(&argc, &argv);
-    Setup_Proc_Grid(argc, argv);
+    Setup_Args(argc, argv);
+    Setup_Proc_Grid();
     Setup_Grid();
     Setup_MPI_Datatypes();
 
