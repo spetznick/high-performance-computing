@@ -3,6 +3,7 @@
  * 2D Poison equation solver
  */
 
+#include <float.h>
 #include <math.h>
 #include <mpi.h>
 #include <stdio.h>
@@ -281,12 +282,16 @@ double Do_Step(int parity) {
         for (y = 1; y < dim[Y_DIR] - 1; y++)
             if ((x + offset[X_DIR] + y + offset[X_DIR]) % 2 == parity &&
                 source[x][y] != 1) {
+                // if (source[x + 1][y + 1] == 1) {
+                // }
                 old_phi = phi[x][y];
                 cij = 0.25 * (phi[x + 1][y] + phi[x - 1][y] + phi[x][y + 1] +
                               phi[x][y - 1]);
                 phi[x][y] = omega * cij + (1 - omega) * old_phi;
-                if (max_err < fabs(old_phi - phi[x][y]))
+                if (max_err < fabs(old_phi - phi[x][y])) {
+                    // printf("max err: %f\n", max_err);
                     max_err = fabs(old_phi - phi[x][y]);
+                }
             }
 
     return max_err;
@@ -296,13 +301,16 @@ void Solve() {
     int count = 0;
     double delta;
     double delta1, delta2;
+    char cond = 0;
 
     Debug("Solve", 0);
 
     /* give global_delta a higher value then precision_goal */
     delta = 2 * precision_goal;
     global_delta = 2 * precision_goal;
-    while (global_delta > precision_goal && count < max_iter) {
+    printf("precision goal: %f\n", precision_goal);
+    while (global_delta > precision_goal && count < max_iter &&
+           delta < (DBL_MAX / 2)) {
         Debug("Do_Step 0", 0);
         delta1 = Do_Step(0);
         Exchange_Borders();
@@ -315,9 +323,13 @@ void Solve() {
         MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX, grid_comm);
         count++;
     }
-
+    if (delta >= (DBL_MAX / 2)) {
+        printf("Error is too large. Aborting\n");
+        fflush(stdout);
+        MPI_Abort(grid_comm, 1);
+    }
     if (proc_rank == 0)
-        printf("Number of iterations: %i, omega: %f\n", count, omega);
+        printf("Number of iterations: %i, omega: %.2f\n", count, omega);
     printf("Delta: %f\n", delta);
 }
 
@@ -351,6 +363,9 @@ void Clean_Up() {
 }
 
 int main(int argc, char **argv) {
+    if (isinf(DBL_MAX + 2)) {
+        printf("%f\n", DBL_MAX + 2);
+    }
     // Initialize MPI, find out MPI communicator size and process
     // rank
     MPI_Init(&argc, &argv);

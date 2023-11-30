@@ -64,6 +64,16 @@ def plot_combined_scatter(file_paths, subplot):
     subplot.set_ylabel('Y')
     subplot.set_title('Combined Plot for Parallel Poisson Solver')
     plt.colorbar(sc, ax=subplot)
+    return val_map
+
+
+def compare_val_maps(val_map, par_val_map):
+    print(val_map.shape, par_val_map.shape)
+    print(np.allclose(val_map, par_val_map, rtol=1e-1))
+    print(val_map[30:35, 30:35])
+    print(par_val_map[30:35, 30:35])
+    # print(res[0:10][0:10])
+    # print("First unequal entries: " + (res == False))
 
 
 def main():
@@ -86,9 +96,10 @@ def main():
         print(f"No files found for pattern: {args.file_pattern}")
         return
 
-    plot_combined_scatter(file_paths, subplots[1])
+    par_val_map = plot_combined_scatter(file_paths, subplots[1])
     plt.tight_layout()  # Adjust layout to prevent overlapping
-    plt.show()
+    compare_val_maps(val_map, par_val_map)
+    # plt.show()
 
 
 if __name__ == "__main__":
