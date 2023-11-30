@@ -69,7 +69,7 @@ def plot_combined_scatter(file_paths, subplot):
 
 def compare_val_maps(val_map, par_val_map):
     print(val_map.shape, par_val_map.shape)
-    print(np.allclose(val_map, par_val_map, rtol=1e-1))
+    print(np.allclose(val_map, par_val_map, rtol=1e-5))
     print(val_map[30:35, 30:35])
     print(par_val_map[30:35, 30:35])
     # print(res[0:10][0:10])

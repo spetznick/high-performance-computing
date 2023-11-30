@@ -285,12 +285,9 @@ double Do_Step(int parity) {
                 // if (source[x + 1][y + 1] == 1) {
                 // }
                 old_phi = phi[x][y];
-                // cij = 0.25 * (phi[x + 1][y] + phi[x - 1][y] + phi[x][y + 1] +
-                //               phi[x][y - 1]);
-                // phi[x][y] = omega * cij + (1 - omega) * old_phi;
-                phi[x][y] = (phi[x + 1][y] + phi[x - 1][y] + phi[x][y + 1] +
-                             phi[x][y - 1]) *
-                            0.25;
+                cij = 0.25 * (phi[x + 1][y] + phi[x - 1][y] + phi[x][y + 1] +
+                              phi[x][y - 1]);
+                phi[x][y] = omega * cij + (1 - omega) * old_phi;
                 if (max_err < fabs(old_phi - phi[x][y])) {
                     // printf("max err: %f\n", max_err);
                     max_err = fabs(old_phi - phi[x][y]);
