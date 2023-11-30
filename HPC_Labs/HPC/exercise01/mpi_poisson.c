@@ -317,7 +317,8 @@ void Solve() {
     }
 
     if (proc_rank == 0)
-        printf("Number of iterations : %i, omega: %f\n", count, omega);
+        printf("Number of iterations: %i, omega: %f\n", count, omega);
+    printf("Delta: %f\n", delta);
 }
 
 void Write_Grid() {
