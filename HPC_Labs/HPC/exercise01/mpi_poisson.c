@@ -19,7 +19,7 @@ enum { X_DIR, Y_DIR };
 
 /* global variables */
 char DEBUG_FILENAME[40];
-char input_filename[20];
+char input_filename[40];
 int gridsize[2];
 double precision_goal; /* precision_goal of solution */
 int max_iter;          /* maximum number of iterations alowed */
@@ -305,7 +305,6 @@ void Solve() {
     /* give global_delta a higher value then precision_goal */
     delta = 2 * precision_goal;
     global_delta = 2 * precision_goal;
-    printf("precision goal: %f\n", precision_goal);
     while (global_delta > precision_goal && count < max_iter &&
            delta < (DBL_MAX / 2)) {
         Debug("Do_Step 0", 0);
@@ -353,8 +352,8 @@ void Write_Grid() {
 void Merge_Grid_Files() {
     FILE *read_file, *write_file;
     char write_filename[40];
-    char read_filename[40][40];
-    sprintf(write_filename, "par_output.dat", proc_rank);
+    char read_filename[40];
+    sprintf(write_filename, "par_output.dat");
     int x_, y_;
     double phi_;
 
@@ -370,8 +369,8 @@ void Merge_Grid_Files() {
                                   "Error opening %s", read_filename);
             Debug(DEBUG_FILENAME, 1);
         }
-        while (fscanf(read_filename, "%i %i %f\n", &x_, &y_, &phi_) == 3) {
-            fprintf(write_file, "%i %i %f\n", x_, y_, phi_);
+        while (fscanf(read_file, "%i %i %lf\n", &x_, &y_, &phi_) == 3) {
+            fprintf(write_file, "%i %i %lf\n", x_, y_, phi_);
         }
         fclose(read_file);
     }
