@@ -317,6 +317,8 @@ void Solve() {
 
         delta = max(delta1, delta2);
         MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX, grid_comm);
+        if (proc_rank == 0 && !(count % 25))
+            printf("(%i), e: %.4lf\n", count, global_delta);
         count++;
     }
     if (delta >= (DBL_MAX / 2)) {
