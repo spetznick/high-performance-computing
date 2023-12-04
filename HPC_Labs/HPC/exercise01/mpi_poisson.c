@@ -316,9 +316,12 @@ void Solve() {
         Exchange_Borders();
 
         delta = max(delta1, delta2);
-        MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX, grid_comm);
-        if (proc_rank == 0 && !(count % 25))
-            printf("(%i), e: %.4lf\n", count, global_delta);
+        if (!(count % 10)) {
+            MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX,
+                          grid_comm);
+            // if (proc_rank == 0) printf("(%i), e: %.4lf\n", count,
+            // global_delta);
+        }
         count++;
     }
     if (delta >= (DBL_MAX / 2)) {
@@ -326,9 +329,10 @@ void Solve() {
         fflush(stdout);
         MPI_Abort(grid_comm, 1);
     }
-    if (proc_rank == 0)
+    if (proc_rank == 0) {
         printf("Number of iterations: %i, omega: %.2f\n", count, omega);
-    printf("Delta: %f\n", delta);
+        printf("Delta: %f\n", global_delta);
+    }
 }
 
 void Write_Grid() {
@@ -394,17 +398,20 @@ int main(int argc, char **argv) {
     MPI_Init(&argc, &argv);
     Setup_Args(argc, argv);
     Setup_Proc_Grid();
-    Setup_Grid();
-    Setup_MPI_Datatypes();
 
-    start_timer();
-    Solve();
+    for (size_t i = 0; i < 10; i++) {
+        Setup_Grid();
+        Setup_MPI_Datatypes();
+        start_timer();
+        Solve();
+        print_timer();
+        stop_timer();
+    }
     Write_Grid();
     MPI_Barrier(grid_comm);
     if (proc_rank == 0) {
         Merge_Grid_Files();
     }
-    print_timer();
     Clean_Up();
     MPI_Finalize();
     return 0;
