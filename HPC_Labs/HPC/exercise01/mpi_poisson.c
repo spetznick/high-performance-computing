@@ -282,14 +282,11 @@ double Do_Step(int parity) {
         for (y = 1; y < dim[Y_DIR] - 1; y++)
             if ((x + offset[X_DIR] + y + offset[Y_DIR]) % 2 == parity &&
                 source[x][y] != 1) {
-                // if (source[x + 1][y + 1] == 1) {
-                // }
                 old_phi = phi[x][y];
                 cij = 0.25 * (phi[x + 1][y] + phi[x - 1][y] + phi[x][y + 1] +
                               phi[x][y - 1]);
                 phi[x][y] = omega * cij + (1 - omega) * old_phi;
                 if (max_err < fabs(old_phi - phi[x][y])) {
-                    // printf("max err: %f\n", max_err);
                     max_err = fabs(old_phi - phi[x][y]);
                 }
             }
@@ -302,7 +299,6 @@ void Solve() {
     double delta;
     double delta1, delta2;
     double global_delta;
-    char cond = 0;
 
     Debug("Solve", 0);
 
@@ -325,7 +321,7 @@ void Solve() {
         count++;
     }
     if (delta >= (DBL_MAX / 2)) {
-        printf("Error is too large. Aborting\n");
+        printf("Solution is diverging. Aborting\n");
         fflush(stdout);
         MPI_Abort(grid_comm, 1);
     }
@@ -354,6 +350,34 @@ void Write_Grid() {
     fclose(f);
 }
 
+void Merge_Grid_Files() {
+    FILE *read_file, *write_file;
+    char write_filename[40];
+    char read_filename[40][40];
+    sprintf(write_filename, "par_output.dat", proc_rank);
+    int x_, y_;
+    double phi_;
+
+    if ((write_file = fopen(write_filename, "w")) == NULL) {
+        Debug("Write_Grid : fopen failed", 1);
+    }
+    for (int proc_idx = 0; proc_idx < num_procs; proc_idx++) {
+        snprintf(read_filename, sizeof(read_filename), "output%i.dat",
+                 proc_idx);
+        read_file = fopen(read_filename, "r");
+        if (read_file == NULL) {
+            int result = snprintf(DEBUG_FILENAME, sizeof(DEBUG_FILENAME),
+                                  "Error opening %s", read_filename);
+            Debug(DEBUG_FILENAME, 1);
+        }
+        while (fscanf(read_filename, "%i %i %f\n", &x_, &y_, &phi_) == 3) {
+            fprintf(write_file, "%i %i %f\n", x_, y_, phi_);
+        }
+        fclose(read_file);
+    }
+    fclose(write_file);
+}
+
 void Clean_Up() {
     Debug("Clean_Up", 0);
 
@@ -375,6 +399,10 @@ int main(int argc, char **argv) {
     start_timer();
     Solve();
     Write_Grid();
+    MPI_Barrier(grid_comm);
+    if (proc_rank == 0) {
+        Merge_Grid_Files();
+    }
     print_timer();
     Clean_Up();
     MPI_Finalize();
