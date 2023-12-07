@@ -106,7 +106,6 @@ void Setup_MPI_Datatypes() {
 
 void Exchange_Borders() {
     // Debug("Exchange_Borders", 0);
-    time_communication(0);
     MPI_Sendrecv(&phi[1][1], 1, border_type[Y_DIR], proc_top, 0,
                  &phi[1][dim[Y_DIR] - 1], 1, border_type[Y_DIR], proc_bottom, 0,
                  grid_comm, &status); /* all traffic in direction "top" */
@@ -119,7 +118,6 @@ void Exchange_Borders() {
     MPI_Sendrecv(&phi[dim[X_DIR] - 2][1], 1, border_type[X_DIR], proc_right, 0,
                  &phi[0][1], 1, border_type[X_DIR], proc_left, 0, grid_comm,
                  &status); /* all traffic in direction "right" */
-    time_communication(1);
 }
 
 void start_timer() {
@@ -341,10 +339,12 @@ int Solve() {
 
         delta = max(delta1, delta2);
         if (!(count % 10)) {
+            // time_communication(0);
             MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX,
                           grid_comm);
             // if (proc_rank == 0) printf("(%i), e: %.4lf\n", count,
             // global_delta);
+            // time_communication(1);
         }
         count++;
     }
@@ -354,7 +354,8 @@ int Solve() {
         MPI_Abort(grid_comm, 1);
     }
     if (proc_rank == 0) {
-        printf("Number of iterations: %i, omega: %.2f\n", count, omega);
+        printf("Number of iterations: %i, omega: %.2f, grid size: %i\n", count,
+               omega, gridsize[X_DIR]);
         printf("Delta: %f\n", global_delta);
     }
     return count;
