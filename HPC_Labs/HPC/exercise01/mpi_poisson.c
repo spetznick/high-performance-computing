@@ -38,6 +38,7 @@ int dim[2];   /* grid dimensions */
 /* timer variable */
 int world_rank;
 double wtime;
+double time_spent_communication = 0;
 
 /* process specific variables */
 int proc_rank;     /* rank of current process */
@@ -51,12 +52,13 @@ int proc_dim[2];    /* process grid dimensions*/
 MPI_Comm grid_comm; /* grid COMMUNICATOR */
 MPI_Status status;
 
+void time_communication(const char second_call);
 void Setup_Args(int argc, char **argv);
 void Setup_MPI_Datatypes();
 void Exchange_Borders();
 void Setup_Grid();
 double Do_Step(int parity);
-void Solve();
+int Solve();
 void Write_Grid();
 void Clean_Up();
 void Debug(char *mesg, int terminate);
@@ -91,8 +93,7 @@ void Setup_Args(int argc, char **argv) {
 }
 
 void Setup_MPI_Datatypes() {
-    Debug("Setup_MPI_Datatypes", 0);
-
+    // Debug("Setup_MPI_Datatypes", 0);
     /* Datatype for vertical data exchange (Y_DIR) */
     MPI_Type_vector(dim[X_DIR] - 2, 1, dim[Y_DIR], MPI_DOUBLE,
                     &border_type[Y_DIR]);
@@ -104,7 +105,8 @@ void Setup_MPI_Datatypes() {
 }
 
 void Exchange_Borders() {
-    Debug("Exchange_Borders", 0);
+    // Debug("Exchange_Borders", 0);
+    time_communication(0);
     MPI_Sendrecv(&phi[1][1], 1, border_type[Y_DIR], proc_top, 0,
                  &phi[1][dim[Y_DIR] - 1], 1, border_type[Y_DIR], proc_bottom, 0,
                  grid_comm, &status); /* all traffic in direction "top" */
@@ -117,6 +119,7 @@ void Exchange_Borders() {
     MPI_Sendrecv(&phi[dim[X_DIR] - 2][1], 1, border_type[X_DIR], proc_right, 0,
                  &phi[0][1], 1, border_type[X_DIR], proc_left, 0, grid_comm,
                  &status); /* all traffic in direction "right" */
+    time_communication(1);
 }
 
 void start_timer() {
@@ -153,6 +156,27 @@ void print_timer() {
     } else
         printf("(%i) Elapsed Wtime %14.6f s (%5.1f%% CPU)\n", proc_rank, wtime,
                100.0 * ticks * (1.0 / CLOCKS_PER_SEC) / wtime);
+}
+
+void time_communication(const char second_call) {
+    static double start_time;
+    if (!second_call) {
+        stop_timer();
+        start_time = wtime;
+        resume_timer();
+    } else {
+        stop_timer();
+        time_spent_communication += wtime - start_time;
+        resume_timer();
+    }
+}
+
+void compute_communication_per_iteration(double runtime, int count) {
+    printf("(%i) Time spent in communication: %14.6f s (%2.1f %%)\n", proc_rank,
+           time_spent_communication, 100 * time_spent_communication / runtime);
+    printf("(%i) Times per iteration: %14.6f s of %.6f s\n", proc_rank,
+           time_spent_communication / (double)count, runtime / (double)count);
+    time_spent_communication = 0.;
 }
 
 void Debug(char *mesg, int terminate) {
@@ -294,7 +318,7 @@ double Do_Step(int parity) {
     return max_err;
 }
 
-void Solve() {
+int Solve() {
     int count = 0;
     double delta;
     double delta1, delta2;
@@ -333,6 +357,7 @@ void Solve() {
         printf("Number of iterations: %i, omega: %.2f\n", count, omega);
         printf("Delta: %f\n", global_delta);
     }
+    return count;
 }
 
 void Write_Grid() {
@@ -399,13 +424,14 @@ int main(int argc, char **argv) {
     Setup_Args(argc, argv);
     Setup_Proc_Grid();
 
-    for (size_t i = 0; i < 10; i++) {
+    for (size_t i = 0; i < 5; i++) {
         Setup_Grid();
         Setup_MPI_Datatypes();
         start_timer();
-        Solve();
+        int count = Solve();
         print_timer();
         stop_timer();
+        compute_communication_per_iteration(wtime, count);
     }
     Write_Grid();
     MPI_Barrier(grid_comm);
