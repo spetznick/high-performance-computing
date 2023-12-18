@@ -425,7 +425,7 @@ int main(int argc, char **argv) {
     Setup_Args(argc, argv);
     Setup_Proc_Grid();
 
-    for (size_t i = 0; i < 5; i++) {
+    for (size_t i = 0; i < 1; i++) {
         Setup_Grid();
         Setup_MPI_Datatypes();
         start_timer();

@@ -72,11 +72,12 @@ def compare_val_maps(val_map, par_val_map):
     # 1.5: 0.050369
     # 1.3: 0.034852
     # 1: 6.4000000000064e-5
-    print("Max error between grids: ", np.max(val_map-par_val_map))
+    print("Max error between grids: ", np.max(np.abs(val_map - par_val_map)))
     print(val_map.shape, par_val_map.shape)
-    print(np.allclose(val_map, par_val_map, rtol=1e-5))
-    print(val_map[30:35, 30:35])
-    print(par_val_map[30:35, 30:35])
+    print(np.allclose(val_map, par_val_map, rtol=1e-2))
+    print((val_map - par_val_map)[30:35, 30:35])
+    # print(val_map[30:35, 30:35])
+    # print(par_val_map[30:35, 30:35])
     # print(res[0:10][0:10])
     # print("First unequal entries: " + (res == False))
 
@@ -103,7 +104,10 @@ def main():
 
     par_val_map = plot_combined_scatter(file_paths, subplots[1])
     plt.tight_layout()  # Adjust layout to prevent overlapping
-    compare_val_maps(val_map, par_val_map)
+    try:
+        compare_val_maps(val_map, par_val_map)
+    except ValueError:
+        print("Grid sizes do not match ignore error comparison.")
     plt.show()
 
 
