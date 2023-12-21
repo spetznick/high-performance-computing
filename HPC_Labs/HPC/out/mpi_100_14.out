@@ -1,0 +1,140 @@
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.007127 s ( 99.4% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000043, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.007046 s ( 99.6% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000042, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.007010 s ( 99.5% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000042, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.006961 s ( 99.4% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000042, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.006851 s ( 99.4% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000041, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.006869 s ( 99.7% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000041, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.006824 s ( 99.7% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000041, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.006836 s ( 99.6% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000041, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.006842 s ( 99.7% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000041, s
+Number of iterations: 167, omega: 1.95, grid size: 100
+Delta: 0.000086
+(0) Elapsed Wtime       0.006791 s ( 99.6% CPU)
+(0) Time spent in communication:       0.000000 s (0.0 %)
+(0) Times per iteration:       0.000000 s of 0.000041, s
+(1) Elapsed Wtime       0.007119 s ( 99.6% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000043, s
+(1) Elapsed Wtime       0.007044 s ( 99.4% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000042, s
+(1) Elapsed Wtime       0.007011 s ( 99.5% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000042, s
+(1) Elapsed Wtime       0.006959 s ( 99.4% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000042, s
+(1) Elapsed Wtime       0.006848 s ( 99.4% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000041, s
+(1) Elapsed Wtime       0.006866 s ( 99.6% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000041, s
+(1) Elapsed Wtime       0.006821 s ( 99.6% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000041, s
+(1) Elapsed Wtime       0.006833 s ( 99.6% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000041, s
+(1) Elapsed Wtime       0.006840 s ( 99.6% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000041, s
+(1) Elapsed Wtime       0.006789 s ( 99.6% CPU)
+(1) Time spent in communication:       0.000000 s (0.0 %)
+(1) Times per iteration:       0.000000 s of 0.000041, s
+(2) Elapsed Wtime       0.007119 s ( 99.4% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000043, s
+(2) Elapsed Wtime       0.007045 s ( 97.8% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000042, s
+(2) Elapsed Wtime       0.007011 s ( 99.3% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000042, s
+(2) Elapsed Wtime       0.006959 s ( 99.5% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000042, s
+(2) Elapsed Wtime       0.006848 s ( 99.3% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000041, s
+(2) Elapsed Wtime       0.006866 s ( 99.6% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000041, s
+(2) Elapsed Wtime       0.006821 s ( 99.6% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000041, s
+(2) Elapsed Wtime       0.006833 s ( 99.7% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000041, s
+(2) Elapsed Wtime       0.006840 s ( 99.6% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000041, s
+(2) Elapsed Wtime       0.006789 s ( 99.7% CPU)
+(2) Time spent in communication:       0.000000 s (0.0 %)
+(2) Times per iteration:       0.000000 s of 0.000041, s
+(3) Elapsed Wtime       0.007118 s ( 97.5% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000043, s
+(3) Elapsed Wtime       0.007044 s ( 99.3% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000042, s
+(3) Elapsed Wtime       0.007008 s ( 99.4% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000042, s
+(3) Elapsed Wtime       0.006959 s ( 99.2% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000042, s
+(3) Elapsed Wtime       0.006847 s ( 99.5% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000041, s
+(3) Elapsed Wtime       0.006866 s ( 99.5% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000041, s
+(3) Elapsed Wtime       0.006820 s ( 99.6% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000041, s
+(3) Elapsed Wtime       0.006833 s ( 99.6% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000041, s
+(3) Elapsed Wtime       0.006840 s ( 99.5% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000041, s
+(3) Elapsed Wtime       0.006788 s ( 99.6% CPU)
+(3) Time spent in communication:       0.000000 s (0.0 %)
+(3) Times per iteration:       0.000000 s of 0.000041, s

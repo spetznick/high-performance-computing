@@ -29,6 +29,7 @@ double omega = 1.0;
 /* benchmark related variables */
 clock_t ticks;    /* number of systemticks */
 int timer_on = 0; /* is timer running? */
+double errors_over_iteration[5000];
 
 /* local grid related variables */
 double **phi; /* grid */
@@ -177,6 +178,23 @@ void compute_communication_per_iteration(double runtime, int count) {
     time_spent_communication = 0.;
 }
 
+void Write_errors_over_iteration(int num_run) {
+    FILE *f;
+    char filename[40];
+    sprintf(filename, "errors_%i.dat", num_run);
+
+    if ((f = fopen(filename, "w")) == NULL) {
+        Debug("Write errors: fopen failed", 1);
+    }
+
+    fprintf(f, "Errors for size:%i * %i, iteration: %i\n", gridsize[X_DIR],
+            gridsize[Y_DIR], max_iter);
+    for (int i = 0; i < max_iter; i++) {
+        fprintf(f, "%lf\n", errors_over_iteration[i]);
+    }
+    fclose(f);
+}
+
 void Debug(char *mesg, int terminate) {
     if (DEBUG || terminate) printf("%s\n", mesg);
     if (terminate) exit(EXIT_FAILURE);
@@ -210,7 +228,7 @@ void Setup_Grid() {
     FILE *f;
     int upper_offset[2];
 
-    Debug("Setup_Subgrid", 0);
+    // Debug("Setup_Subgrid", 0);
     if (proc_rank == 0) {
         f = fopen(input_filename, "r");
         if (f == NULL) {
@@ -290,7 +308,7 @@ void Setup_Grid() {
     if (proc_rank == 0) {
         fclose(f);
     }
-    Debug("Setup_Subgrid end", 0);
+    // Debug("Setup_Subgrid end", 0);
 }
 
 double Do_Step(int parity) {
@@ -322,30 +340,27 @@ int Solve() {
     double delta1, delta2;
     double global_delta;
 
-    Debug("Solve", 0);
+    // Debug("Solve", 0);
 
     /* give global_delta a higher value then precision_goal */
     delta = 2 * precision_goal;
     global_delta = 2 * precision_goal;
     while (global_delta > precision_goal && count < max_iter &&
            delta < (DBL_MAX / 2)) {
-        Debug("Do_Step 0", 0);
+        // Debug("Do_Step 0", 0);
         delta1 = Do_Step(0);
         Exchange_Borders();
 
-        Debug("Do_Step 1", 0);
+        // Debug("Do_Step 1", 0);
         delta2 = Do_Step(1);
         Exchange_Borders();
 
         delta = max(delta1, delta2);
         if (!(count % 10)) {
-            // time_communication(0);
             MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX,
                           grid_comm);
-            // if (proc_rank == 0) printf("(%i), e: %.4lf\n", count,
-            // global_delta);
-            // time_communication(1);
         }
+        errors_over_iteration[count] = global_delta;
         count++;
     }
     if (delta >= (DBL_MAX / 2)) {
@@ -371,7 +386,7 @@ void Write_Grid() {
         Debug("Write_Grid : fopen failed", 1);
     }
 
-    Debug("Write_Grid", 0);
+    // Debug("Write_Grid", 0);
 
     for (x = 1; x < dim[X_DIR] - 1; x++)
         for (y = 1; y < dim[Y_DIR] - 1; y++)
@@ -410,7 +425,7 @@ void Merge_Grid_Files() {
 }
 
 void Clean_Up() {
-    Debug("Clean_Up", 0);
+    // Debug("Clean_Up", 0);
 
     free(phi[0]);
     free(phi);
@@ -425,7 +440,7 @@ int main(int argc, char **argv) {
     Setup_Args(argc, argv);
     Setup_Proc_Grid();
 
-    for (size_t i = 0; i < 1; i++) {
+    for (size_t i = 0; i < 10; i++) {
         Setup_Grid();
         Setup_MPI_Datatypes();
         start_timer();
