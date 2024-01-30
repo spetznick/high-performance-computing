@@ -39,7 +39,9 @@ int dim[2];   /* grid dimensions */
 /* timer variable */
 int world_rank;
 double wtime;
+double avg_wtime = 0;
 double time_spent_communication = 0;
+double sum_time_spent_communication = 0;
 
 /* process specific variables */
 int proc_rank;     /* rank of current process */
@@ -126,6 +128,7 @@ void start_timer() {
         MPI_Barrier(MPI_COMM_WORLD);
         ticks = clock();
         wtime = MPI_Wtime();
+        time_spent_communication = 0.;
         timer_on = 1;
     }
 }
@@ -171,11 +174,13 @@ void time_communication(const char second_call) {
 }
 
 void compute_communication_per_iteration(double runtime, int count) {
-    printf("(%i) Time spent in communication: %14.6f s (%2.1f %%)\n", proc_rank,
-           time_spent_communication, 100 * time_spent_communication / runtime);
-    printf("(%i) Times per iteration: %14.6f s of %.6f s\n", proc_rank,
-           time_spent_communication / (double)count, runtime / (double)count);
-    time_spent_communication = 0.;
+    sum_time_spent_communication /= num_procs;
+    printf(
+        "(%i) Total time: %2.3f s; in comm.: %2.3f s (%2.1f%%); per iter: "
+        "%2.3f s\n",
+        proc_rank, runtime, sum_time_spent_communication,
+        100 * sum_time_spent_communication / runtime, runtime / (double)count);
+    sum_time_spent_communication = 0.;
 }
 
 void Write_errors_over_iteration(int num_run) {
@@ -349,16 +354,22 @@ int Solve() {
            delta < (DBL_MAX / 2)) {
         // Debug("Do_Step 0", 0);
         delta1 = Do_Step(0);
+        time_communication(0);
         Exchange_Borders();
+        time_communication(1);
 
         // Debug("Do_Step 1", 0);
         delta2 = Do_Step(1);
+        time_communication(0);
         Exchange_Borders();
+        time_communication(1);
 
         delta = max(delta1, delta2);
         if (!(count % 10)) {
+            time_communication(0);
             MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX,
                           grid_comm);
+            time_communication(1);
         }
         errors_over_iteration[count] = global_delta;
         count++;
@@ -445,9 +456,13 @@ int main(int argc, char **argv) {
         Setup_MPI_Datatypes();
         start_timer();
         int count = Solve();
-        print_timer();
+        // print_timer();
         stop_timer();
-        compute_communication_per_iteration(wtime, count);
+        MPI_Reduce(&wtime, &avg_wtime, 1, MPI_DOUBLE, MPI_SUM, 0, grid_comm);
+        MPI_Reduce(&time_spent_communication, &sum_time_spent_communication, 1,
+                   MPI_DOUBLE, MPI_SUM, 0, grid_comm);
+        if (proc_rank == 0)
+            compute_communication_per_iteration(avg_wtime / num_procs, count);
     }
     Write_Grid();
     MPI_Barrier(grid_comm);

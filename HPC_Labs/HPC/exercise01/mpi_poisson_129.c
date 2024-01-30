@@ -25,11 +25,11 @@ double precision_goal; /* precision_goal of solution */
 int max_iter;          /* maximum number of iterations alowed */
 MPI_Datatype border_type[2];
 double omega = 1.0;
-int number_of_sweeps = 1;
 
 /* benchmark related variables */
 clock_t ticks;    /* number of systemticks */
 int timer_on = 0; /* is timer running? */
+double errors_over_iteration[5000];
 
 /* local grid related variables */
 double **phi; /* grid */
@@ -39,7 +39,9 @@ int dim[2];   /* grid dimensions */
 /* timer variable */
 int world_rank;
 double wtime;
-double avg_time_spent_communication = 0;
+double avg_wtime;
+double time_spent_communication = 0;
+double sum_time_spent_communication = 0;
 
 /* process specific variables */
 int proc_rank;     /* rank of current process */
@@ -91,9 +93,6 @@ void Setup_Args(int argc, char **argv) {
     if (argc >= 5) {
         strncpy(input_filename, argv[4], 20);
     }
-    if (argc >= 6) {
-        number_of_sweeps = atoi(argv[5]);
-    }
 }
 
 void Setup_MPI_Datatypes() {
@@ -110,7 +109,6 @@ void Setup_MPI_Datatypes() {
 
 void Exchange_Borders() {
     // Debug("Exchange_Borders", 0);
-    time_communication(0);
     MPI_Sendrecv(&phi[1][1], 1, border_type[Y_DIR], proc_top, 0,
                  &phi[1][dim[Y_DIR] - 1], 1, border_type[Y_DIR], proc_bottom, 0,
                  grid_comm, &status); /* all traffic in direction "top" */
@@ -123,7 +121,6 @@ void Exchange_Borders() {
     MPI_Sendrecv(&phi[dim[X_DIR] - 2][1], 1, border_type[X_DIR], proc_right, 0,
                  &phi[0][1], 1, border_type[X_DIR], proc_left, 0, grid_comm,
                  &status); /* all traffic in direction "right" */
-    time_communication(1);
 }
 
 void start_timer() {
@@ -131,6 +128,7 @@ void start_timer() {
         MPI_Barrier(MPI_COMM_WORLD);
         ticks = clock();
         wtime = MPI_Wtime();
+        time_spent_communication = 0.;
         timer_on = 1;
     }
 }
@@ -170,17 +168,36 @@ void time_communication(const char second_call) {
         resume_timer();
     } else {
         stop_timer();
-        avg_time_spent_communication += wtime - start_time;
+        time_spent_communication += wtime - start_time;
         resume_timer();
     }
 }
 
 void compute_communication_per_iteration(double runtime, int count) {
-    printf("(%i) Time spent in communication: %14.6f s (%2.1f %%)\n", proc_rank,
-           avg_time_spent_communication, 100 * avg_time_spent_communication / runtime);
-    printf("(%i) Times per iteration: %14.6f s of %.6f s\n", proc_rank,
-           avg_time_spent_communication / (double)count, runtime / (double)count);
-    avg_time_spent_communication = 0.;
+    sum_time_spent_communication /= num_procs;
+    printf(
+        "(%i) Total time: %2.3f s; in comm.: %2.3f s (%2.1f%%); per iter: "
+        "%2.3f s\n",
+        proc_rank, runtime, sum_time_spent_communication,
+        100 * sum_time_spent_communication / runtime, runtime / (double)count);
+    sum_time_spent_communication = 0.;
+}
+
+void Write_errors_over_iteration(int num_run) {
+    FILE *f;
+    char filename[40];
+    sprintf(filename, "errors_%i.dat", num_run);
+
+    if ((f = fopen(filename, "w")) == NULL) {
+        Debug("Write errors: fopen failed", 1);
+    }
+
+    fprintf(f, "Errors for size:%i * %i, iteration: %i\n", gridsize[X_DIR],
+            gridsize[Y_DIR], max_iter);
+    for (int i = 0; i < max_iter; i++) {
+        fprintf(f, "%lf\n", errors_over_iteration[i]);
+    }
+    fclose(f);
 }
 
 void Debug(char *mesg, int terminate) {
@@ -216,7 +233,7 @@ void Setup_Grid() {
     FILE *f;
     int upper_offset[2];
 
-    Debug("Setup_Subgrid", 0);
+    // Debug("Setup_Subgrid", 0);
     if (proc_rank == 0) {
         f = fopen(input_filename, "r");
         if (f == NULL) {
@@ -296,7 +313,7 @@ void Setup_Grid() {
     if (proc_rank == 0) {
         fclose(f);
     }
-    Debug("Setup_Subgrid end", 0);
+    // Debug("Setup_Subgrid end", 0);
 }
 
 double Do_Step(int parity) {
@@ -306,10 +323,10 @@ double Do_Step(int parity) {
     double cij;
 
     /* calculate interior of grid */
-    for (x = 1; x < dim[X_DIR] - 1; x++)
-        for (y = 1; y < dim[Y_DIR] - 1; y++)
-            if ((x + offset[X_DIR] + y + offset[Y_DIR]) % 2 == parity &&
-                source[x][y] != 1) {
+    for (x = 1; x < dim[X_DIR] - 1; x++) {
+        int y_start = 1 + ((parity + x + offset[X_DIR]) % 2) + offset[Y_DIR];
+        for (y = y_start; y < dim[Y_DIR] - 1; y += 2) {
+            if (source[x][y] != 1) {
                 old_phi = phi[x][y];
                 cij = 0.25 * (phi[x + 1][y] + phi[x - 1][y] + phi[x][y + 1] +
                               phi[x][y - 1]);
@@ -318,6 +335,8 @@ double Do_Step(int parity) {
                     max_err = fabs(old_phi - phi[x][y]);
                 }
             }
+        }
+    }
     return max_err;
 }
 
@@ -326,7 +345,6 @@ int Solve() {
     double delta;
     double delta1, delta2;
     double global_delta;
-    char parity = 0;
 
     // Debug("Solve", 0);
 
@@ -335,36 +353,36 @@ int Solve() {
     global_delta = 2 * precision_goal;
     while (global_delta > precision_goal && count < max_iter &&
            delta < (DBL_MAX / 2)) {
-        for (int sweep_count = 0; sweep_count < number_of_sweeps;
-             sweep_count++) {
-            delta1 = Do_Step(parity);
-            parity = 1 - parity;
-            count++;
-        }
+        // Debug("Do_Step 0", 0);
+        delta1 = Do_Step(0);
+        time_communication(0);
         Exchange_Borders();
+        time_communication(1);
 
-        for (int sweep_count = 0; sweep_count < number_of_sweeps;
-             sweep_count++) {
-            delta1 = Do_Step(parity);
-            parity = 1 - parity;
-        }
+        // Debug("Do_Step 1", 0);
+        delta2 = Do_Step(1);
+        time_communication(0);
         Exchange_Borders();
+        time_communication(1);
 
         delta = max(delta1, delta2);
-        MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX, grid_comm);
+        if (!(count % 1)) {
+            time_communication(0);
+            MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX,
+                          grid_comm);
+            time_communication(1);
+        }
+        errors_over_iteration[count] = global_delta;
+        count++;
     }
-    if (count >= max_iter) {
-        printf("Max number of iterations reached.\n");
-    }
-    count = count / number_of_sweeps;
     if (delta >= (DBL_MAX / 2)) {
         printf("Solution is diverging. Aborting\n");
         fflush(stdout);
         MPI_Abort(grid_comm, 1);
     }
     if (proc_rank == 0) {
-        printf("Num. iterations: %i, omega: %.2f, grid size: %i, sweeps: %i\n",
-               count, omega, gridsize[X_DIR], number_of_sweeps);
+        printf("Number of iterations: %i, omega: %.2f, grid size: %i\n", count,
+               omega, gridsize[X_DIR]);
         printf("Delta: %f\n", global_delta);
     }
     return count;
@@ -380,7 +398,7 @@ void Write_Grid() {
         Debug("Write_Grid : fopen failed", 1);
     }
 
-    Debug("Write_Grid", 0);
+    // Debug("Write_Grid", 0);
 
     for (x = 1; x < dim[X_DIR] - 1; x++)
         for (y = 1; y < dim[Y_DIR] - 1; y++)
@@ -419,7 +437,7 @@ void Merge_Grid_Files() {
 }
 
 void Clean_Up() {
-    Debug("Clean_Up", 0);
+    // Debug("Clean_Up", 0);
 
     free(phi[0]);
     free(phi);
@@ -434,15 +452,18 @@ int main(int argc, char **argv) {
     Setup_Args(argc, argv);
     Setup_Proc_Grid();
 
-    for (size_t i = 0; i < 1; i++) {
+    for (size_t i = 0; i < 10; i++) {
         Setup_Grid();
         Setup_MPI_Datatypes();
         start_timer();
         int count = Solve();
-        print_timer();
+        // print_timer();
         stop_timer();
-        compute_communication_per_iteration(wtime, count);
-        number_of_sweeps += 3;
+        MPI_Reduce(&wtime, &avg_wtime, 1, MPI_DOUBLE, MPI_SUM, 0, grid_comm);
+        MPI_Reduce(&time_spent_communication, &sum_time_spent_communication, 1,
+                   MPI_DOUBLE, MPI_SUM, 0, grid_comm);
+        if (proc_rank == 0)
+            compute_communication_per_iteration(avg_wtime / num_procs, count);
     }
     Write_Grid();
     MPI_Barrier(grid_comm);

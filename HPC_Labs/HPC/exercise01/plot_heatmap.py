@@ -82,6 +82,26 @@ def compare_val_maps(val_map, par_val_map):
     # print("First unequal entries: " + (res == False))
 
 
+def plot_error():
+    errors = np.zeros(5000)
+    with open("errors_0.dat") as file:
+        for i, line in enumerate(file):
+            if i == 0:
+                title = line.rstrip()
+            else:
+                errors[i-1] = float(line.rstrip())
+
+    f = plt.figure()
+    ax = plt.gca()
+    ax.plot(errors, label=title)
+    ax.set_title("error over # iterations")
+    ax.set_xlabel("# iterations")
+    ax.set_ylabel("global error")
+    plt.semilogy()
+    plt.grid()
+    plt.legend()
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='Plot scatter plot for Laplace equation')
@@ -108,6 +128,7 @@ def main():
         compare_val_maps(val_map, par_val_map)
     except ValueError:
         print("Grid sizes do not match ignore error comparison.")
+    plot_error()
     plt.show()
 
 
