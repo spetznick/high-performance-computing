@@ -731,5 +731,80 @@ def exercise_1_2_9():
     fig.savefig("HPC_Labs/figs/exercise01_ex_1_2_9.svg")
 
 
+def exercise_1_2_13():
+    fig = plt.figure(figsize=(16, 8))
+    ax = plt.gca()
+    data_100 = [0.00005,
+                0.00006,
+                0.00005,
+                0.00005,
+                0.00006,
+                0.00005,
+                0.00006,
+                0.00006,
+                0.00006,
+                0.00006]
+    data_200 = [0.00021,
+                0.00021,
+                0.00021,
+                0.00021,
+                0.00021,
+                0.00021,
+                0.00022,
+                0.00021,
+                0.00021,
+                0.00021]
+    data_400 = [0.00083,
+                0.00081,
+                0.00080,
+                0.00081,
+                0.00081,
+                0.00081,
+                0.00080,
+                0.00080,
+                0.00081,
+                0.00082]
+    data_800 = [0.00324,
+                0.00320,
+                0.00320,
+                0.00319,
+                0.00319,
+                0.00321,
+                0.00322,
+                0.00322,
+                0.00327,
+                0.00322]
+    data_1600 = [
+        0.01272,
+        0.01273,
+        0.01273,
+        0.01272,
+        0.01275,
+        0.01274,
+        0.01271,
+        0.01272,
+        0.01273,
+        0.01273
+    ]
+    # grid size 100
+    all_data = [data_100, data_200, data_400, data_800, data_1600]
+    x_axis = ["", '100', '200', '400', '800', '1600']
+
+    ax.scatter(100*np.ones(len(all_data[0])), all_data[0])
+    ax.scatter(200*np.ones(len(all_data[1])), all_data[1])
+    ax.scatter(400*np.ones(len(all_data[2])), all_data[2])
+    ax.scatter(800*np.ones(len(all_data[3])), all_data[3])
+    ax.scatter(1600*np.ones(len(all_data[4])), all_data[4])
+    # ax.xaxis.set_ticks([i for i in range(len(x_axis))], labels=x_axis)
+    ax.semilogy()
+    ax.set_ylabel("time per iteration [ms]")
+    ax.set_xlabel("size n")
+    # ax.grid()
+
+    plt.show()
+    fig.savefig("HPC_Labs/figs/exercise01_ex_1_2_13.pdf")
+    fig.savefig("HPC_Labs/figs/exercise01_ex_1_2_13.svg")
+
+
 if __name__ == "__main__":
-    exercise_1_2_9()
+    exercise_1_2_13()
