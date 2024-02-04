@@ -1,0 +1,100 @@
+Matrix size 50 X 50
+Power method in CPU starts
+*************************************
+CPU lamda at 0: 2039.504395
+CPU lamda at 1: 2502.271973
+CPU lamda at 2: 2505.832764
+CPU lamda at 3: 2505.770264
+CPU lamda at 4: 2505.772461
+CPU lamda at 5: 2505.772705
+CPU lamda at 6: 2505.771729
+CPU lamda at 7: 2505.771729
+*************************************
+CPU: run time = 0.000097 secs.
+Power method in CPU is finished
+Power method in GPU starts
+This GPU has major architecture 7, minor 0
+GPU lambda at 0: 489.06
+GPU lambda at 1: 2276.41
+GPU lambda at 2: 2504.26
+GPU lambda at 3: 2505.89
+GPU lambda at 4: 2505.77
+GPU lambda at 5: 2505.77
+GPU lambda at 6: 2505.77
+GPU lambda at 7: 2505.77
+GPU: run time: 0.114434 s, comm time: 0.000406
+Matrix size 500 X 500
+Power method in CPU starts
+*************************************
+CPU lamda at 0: 18107.144531
+CPU lamda at 1: 24970.935547
+CPU lamda at 2: 24977.232422
+CPU lamda at 3: 24977.267578
+CPU lamda at 4: 24977.236328
+CPU lamda at 5: 24977.240234
+CPU lamda at 6: 24977.232422
+CPU lamda at 7: 24977.238281
+CPU lamda at 8: 24977.238281
+*************************************
+CPU: run time = 0.008881 secs.
+Power method in CPU is finished
+Power method in GPU starts
+This GPU has major architecture 7, minor 0
+GPU lambda at 0: 1293.52
+GPU lambda at 1: 21279.61
+GPU lambda at 2: 24973.98
+GPU lambda at 3: 24977.34
+GPU lambda at 4: 24977.24
+GPU lambda at 5: 24977.24
+GPU lambda at 6: 24977.24
+GPU lambda at 7: 24977.24
+GPU: run time: 0.105854 s, comm time: 0.000633
+Matrix size 2000 X 2000
+Power method in CPU starts
+*************************************
+CPU lamda at 0: 74132.226562
+CPU lamda at 1: 100012.015625
+CPU lamda at 2: 100018.289062
+CPU lamda at 3: 100018.335938
+CPU lamda at 4: 100018.367188
+CPU lamda at 5: 100018.351562
+CPU lamda at 6: 100018.351562
+*************************************
+CPU: run time = 0.107450 secs.
+Power method in CPU is finished
+Power method in GPU starts
+This GPU has major architecture 7, minor 0
+GPU lambda at 0: 2593.64
+GPU lambda at 1: 86102.55
+GPU lambda at 2: 100015.34
+GPU lambda at 3: 100018.37
+GPU lambda at 4: 100018.30
+GPU lambda at 5: 100018.30
+GPU: run time: 0.123544 s, comm time: 0.001901
+[spetznick@login02 HPC_Labs]$ ./run03.sh
+nvcc - o power_gpu.x power_gpu.cu
+Submitted batch job 3103116
+[spetznick@login02 HPC_Labs]$ cat HPC/out/power_gpu_3103116.out
+Matrix size 4000 X 4000
+Power method in CPU starts
+*************************************
+CPU lamda at 0: 149044.796875
+CPU lamda at 1: 199991.171875
+CPU lamda at 2: 199997.906250
+CPU lamda at 3: 199997.906250
+*************************************
+CPU: run time = 0.268277 secs.
+Power method in CPU is finished
+Power method in GPU starts
+This GPU has major architecture 7, minor 0
+GPU lambda at 0: 3706.55
+GPU lambda at 1: 172649.09
+GPU lambda at 2: 199994.95
+GPU lambda at 3: 199997.70
+GPU lambda at 4: 199997.67
+GPU lambda at 5: 199997.64
+GPU lambda at 6: 199997.61
+GPU lambda at 7: 199997.67
+GPU lambda at 8: 199997.64
+GPU lambda at 9: 199997.64
+GPU: run time: 0.118088 s, comm time: 0.005919
