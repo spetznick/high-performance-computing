@@ -731,6 +731,28 @@ def exercise_1_2_9():
     fig.savefig("HPC_Labs/figs/exercise01_ex_1_2_9.svg")
 
 
+def exercise_1_2_11():
+    import pandas as pd
+    data100 = pd.read_csv(
+        "HPC_Labs/HPC/exercise01/timing_info_merged_4_100.csv", index_col=None)
+    print(data100.head())
+    data200 = pd.read_csv(
+        "HPC_Labs/HPC/exercise01/timing_info_merged_4_200.csv", index_col=None)
+    print(data200.head())
+    data400 = pd.read_csv(
+        "HPC_Labs/HPC/exercise01/timing_info_merged_4_400.csv", index_col=None)
+    print(data400.head())
+    data800 = pd.read_csv(
+        "HPC_Labs/HPC/exercise01/timing_info_merged_4_800.csv", index_col=None)
+    print(data800.head())
+    fig, axs = plt.subplots(figsize=(16, 8), nrows=1, ncols=2)
+    data100.plot.box(ax=axs[0], x="proc rank", y="time")
+    data100.plot.box(ax=axs[1], x="proc rank",
+                     y="comm. time")
+    fig.show()
+    print(data800.head())
+
+
 def exercise_1_2_13():
     fig = plt.figure(figsize=(16, 8))
     ax = plt.gca()
@@ -807,4 +829,4 @@ def exercise_1_2_13():
 
 
 if __name__ == "__main__":
-    exercise_1_2_13()
+    exercise_1_2_11()

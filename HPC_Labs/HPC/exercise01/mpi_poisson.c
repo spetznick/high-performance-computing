@@ -17,6 +17,12 @@
 
 enum { X_DIR, Y_DIR };
 
+typedef struct {
+    struct timespec start;
+    struct timespec end;
+    long total_elapsed_ns;  // Accumulated elapsed time in nanoseconds
+} CumulativeTimingInfo;
+
 /* global variables */
 char DEBUG_FILENAME[40];
 char input_filename[40];
@@ -29,6 +35,7 @@ double omega = 1.0;
 /* benchmark related variables */
 clock_t ticks;    /* number of systemticks */
 int timer_on = 0; /* is timer running? */
+struct timespec t_start, t_end, t_comm_start, t_comm_end;
 double errors_over_iteration[5000];
 
 /* local grid related variables */
@@ -42,6 +49,10 @@ double wtime;
 double avg_wtime = 0;
 double time_spent_communication = 0;
 double sum_time_spent_communication = 0;
+const int n_timers = 30;
+CumulativeTimingInfo timeArray[n_timers];
+CumulativeTimingInfo commArray[n_timers];
+size_t num_run;
 
 /* process specific variables */
 int proc_rank;     /* rank of current process */
@@ -69,6 +80,78 @@ void start_timer();
 void resume_timer();
 void stop_timer();
 void print_timer();
+
+// Function to start the timer
+void startTimer(CumulativeTimingInfo *timer) {
+    clock_gettime(CLOCK_MONOTONIC, &(timer->start));
+}
+
+// Function to stop the timer and accumulate elapsed time
+void stopTimer(CumulativeTimingInfo *timer) {
+    clock_gettime(CLOCK_MONOTONIC, &(timer->end));
+    long elapsed_ns = (timer->end.tv_sec - timer->start.tv_sec) * 1e9 +
+                      (timer->end.tv_nsec - timer->start.tv_nsec);
+    timer->total_elapsed_ns += elapsed_ns;
+}
+
+// Function to write timing information to a CSV file
+void writeTimingInfoToCSV(CumulativeTimingInfo *timeArray,
+                          CumulativeTimingInfo *commArray, int n_timers) {
+    FILE *csvFile;
+    char filename[40];
+    sprintf(filename, "timing_info_%i.csv", proc_rank);
+    csvFile = fopen(filename, "w");
+    if (csvFile == NULL) {
+        perror("Error opening CSV file");
+        return;
+    }
+
+    // Write CSV header
+    fprintf(csvFile, "proc rank,px,py,nx,ny,time,comm. time,omega \n");
+
+    // Write timing information to CSV file
+    for (int i = 0; i < n_timers; ++i) {
+        fprintf(csvFile, "%d,%d,%d,%d,%d,%f,%f,%f\n", proc_rank,
+                proc_dim[X_DIR], proc_dim[Y_DIR], gridsize[X_DIR],
+                gridsize[Y_DIR], (double)timeArray[i].total_elapsed_ns / 1e-9,
+                (double)commArray[i].total_elapsed_ns / 1e-9, omega);
+    }
+
+    fclose(csvFile);
+}
+
+void mergeTimingInfoToCSVFiles() {
+    FILE *read_file, *write_file;
+    char write_filename[40];
+    char read_filename[40];
+    sprintf(write_filename, "timing_info_merged_%d.csv", num_procs);
+
+    if ((write_file = fopen(write_filename, "w")) == NULL) {
+        Debug("Write_Grid : fopen failed", 1);
+    }
+    for (int proc_idx = 0; proc_idx < num_procs; proc_idx++) {
+        snprintf(read_filename, sizeof(read_filename), "timing_info_%i.csv",
+                 proc_idx);
+        read_file = fopen(read_filename, "r");
+        if (read_file == NULL) {
+            int result = snprintf(DEBUG_FILENAME, sizeof(DEBUG_FILENAME),
+                                  "Error opening %s", read_filename);
+            Debug(DEBUG_FILENAME, 1);
+        }
+        size_t len = 0;
+        ssize_t read;
+        char *line = NULL;
+        int linecounter = 0;
+        while ((read = getline(&line, &len, read_file)) != -1) {
+            if (linecounter != 0 || proc_idx == 0) {
+                fprintf(write_file, "%s", line);
+            }
+            linecounter++;
+        }
+        fclose(read_file);
+    }
+    fclose(write_file);
+}
 
 void Setup_Args(int argc, char **argv) {
     /* Retrieve the number of processes */
@@ -158,6 +241,13 @@ void print_timer() {
     } else
         printf("(%i) Elapsed Wtime %14.6f s (%5.1f%% CPU)\n", proc_rank, wtime,
                100.0 * ticks * (1.0 / CLOCKS_PER_SEC) / wtime);
+}
+
+void add_to_timer(struct timespec *const start, struct timespec *const end,
+                  float *const timer) {
+    float runtime =
+        (end->tv_sec - start->tv_sec) + 1e-9 * (end->tv_nsec - start->tv_nsec);
+    *timer += runtime;
 }
 
 void time_communication(const char second_call) {
@@ -354,22 +444,22 @@ int Solve() {
            delta < (DBL_MAX / 2)) {
         // Debug("Do_Step 0", 0);
         delta1 = Do_Step(0);
-        time_communication(0);
+        startTimer(&commArray[num_run]);
         Exchange_Borders();
-        time_communication(1);
+        stopTimer(&commArray[num_run]);
 
         // Debug("Do_Step 1", 0);
         delta2 = Do_Step(1);
-        time_communication(0);
+        startTimer(&commArray[num_run]);
         Exchange_Borders();
-        time_communication(1);
+        stopTimer(&commArray[num_run]);
 
         delta = max(delta1, delta2);
         if (!(count % 10)) {
-            time_communication(0);
+            startTimer(&commArray[num_run]);
             MPI_Allreduce(&delta, &global_delta, 1, MPI_DOUBLE, MPI_MAX,
                           grid_comm);
-            time_communication(1);
+            stopTimer(&commArray[num_run]);
         }
         errors_over_iteration[count] = global_delta;
         count++;
@@ -451,22 +541,26 @@ int main(int argc, char **argv) {
     Setup_Args(argc, argv);
     Setup_Proc_Grid();
 
-    for (size_t i = 0; i < 10; i++) {
+    for (num_run = 0; num_run < n_timers; num_run++) {
         Setup_Grid();
         Setup_MPI_Datatypes();
-        start_timer();
+        startTimer(&timeArray[num_run]);
         int count = Solve();
         // print_timer();
-        stop_timer();
-        MPI_Reduce(&wtime, &avg_wtime, 1, MPI_DOUBLE, MPI_SUM, 0, grid_comm);
-        MPI_Reduce(&time_spent_communication, &sum_time_spent_communication, 1,
-                   MPI_DOUBLE, MPI_SUM, 0, grid_comm);
-        if (proc_rank == 0)
-            compute_communication_per_iteration(avg_wtime / num_procs, count);
+        stopTimer(&timeArray[num_run]);
+        // MPI_Reduce(&wtime, &avg_wtime, 1, MPI_DOUBLE, MPI_SUM, 0, grid_comm);
+        // MPI_Reduce(&time_spent_communication, &sum_time_spent_communication,
+        // 1,
+        //            MPI_DOUBLE, MPI_SUM, 0, grid_comm);
+        // if (proc_rank == 0)
+        //     compute_communication_per_iteration(avg_wtime / num_procs,
+        //     count);
     }
+    writeTimingInfoToCSV(timeArray, commArray, n_timers);
     Write_Grid();
     MPI_Barrier(grid_comm);
     if (proc_rank == 0) {
+        mergeTimingInfoToCSVFiles();
         Merge_Grid_Files();
     }
     Clean_Up();
