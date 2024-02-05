@@ -10,7 +10,7 @@
 
 #include "cuda.h"
 
-const int BLOCK_SIZE = 32;  // number of threads per block
+const int BLOCK_SIZE = 64;  // number of threads per block
 
 // Input Array Variables
 float* h_MatA = NULL;
@@ -30,6 +30,48 @@ int GlobalSize =
 const float EPS = 0.000005;  // tolerence of the error
 int max_iteration = 100;     // the maximum iteration steps
 
+//
+#include <stdio.h>
+
+typedef struct {
+    struct timespec start;
+    struct timespec end;
+    long total_elapsed_ns;  // Accumulated elapsed time in nanoseconds
+} CumulativeTimingInfo;
+
+// Function to start the timer
+void startTimer(CumulativeTimingInfo* timer) {
+    clock_gettime(CLOCK_MONOTONIC, &(timer->start));
+}
+
+// Function to stop the timer and accumulate elapsed time
+void stopTimer(CumulativeTimingInfo* timer) {
+    clock_gettime(CLOCK_MONOTONIC, &(timer->end));
+    long elapsed_ns = (timer->end.tv_sec - timer->start.tv_sec) * 1e9 +
+                      (timer->end.tv_nsec - timer->start.tv_nsec);
+    timer->total_elapsed_ns += elapsed_ns;
+}
+
+// Function to print accumulated elapsed time
+void printTotalElapsedTime(CumulativeTimingInfo* timer, const char* message) {
+    printf("%s Total Elapsed Time: %ld ns\n", message, timer->total_elapsed_ns);
+}
+
+// Function to write timing information to a CSV file
+void writeTimingInfoToCSV(CumulativeTimingInfo* timeArray,
+                          CumulativeTimingInfo* commArray, int n_timers,
+                          const char* memory_type) {
+    // Write CSV header
+    printf("Global Size,Block Size,Time,Comm Time,Memory Type\n");
+
+    // Write timing information to CSV file
+    for (int i = 0; i < n_timers; ++i) {
+        printf("%d,%d,%ld,%ld,%s\n", GlobalSize, BLOCK_SIZE,
+               timeArray[i].total_elapsed_ns, commArray[i].total_elapsed_ns,
+               memory_type);
+    }
+}
+
 // Functions
 void Cleanup(void);
 void InitOne(float*, int);
@@ -46,6 +88,14 @@ __global__ void FindNormW(float* g_VecW, float* g_NormW, int N);
 __global__ void NormalizeW(float* g_VecW, float* g_NormW, float* g_VecV, int N);
 __global__ void ComputeLambda(float* g_VecV, float* g_VecW, float* g_Lamda,
                               int N);
+// Global memory kernels
+__global__ void Global_Av_Product(float* g_MatA, float* g_VecV, float* g_VecW,
+                                  int N);
+__global__ void Global_FindNormW(float* g_VecW, float* g_NormW, int N);
+__global__ void Global_NormalizeW(float* g_VecW, float* g_NormW, float* g_VecV,
+                                  int N);
+__global__ void Global_ComputeLambda(float* g_VecV, float* g_VecW,
+                                     float* g_Lamda, int N);
 
 void CPU_AvProduct() {
     int N = GlobalSize;
@@ -77,7 +127,7 @@ float CPU_ComputeLamda() {
 }
 
 void RunCPUPowerMethod() {
-    printf("*************************************\n");
+    // printf("*************************************\n");
     float oldLamda = 0;
     float lamda = 0;
 
@@ -94,13 +144,13 @@ void RunCPUPowerMethod() {
         if (abs(oldLamda - lamda) < EPS) break;
         oldLamda = lamda;
     }
-    printf("*************************************\n");
+    // printf("*************************************\n");
 }
 
 // Host code
 int main(int argc, char** argv) {
-    struct timespec t_start, t_end, t_comm_start, t_comm_end;
-    double runtime, comm_time;
+    // struct timespec t_start, t_end, t_comm_start, t_comm_end;
+    // double runtime, comm_time;
     Arguments(argc, argv);
 
     int N = GlobalSize;
@@ -108,6 +158,12 @@ int main(int argc, char** argv) {
     size_t vec_size = N * sizeof(float);
     size_t mat_size = N * N * sizeof(float);
     size_t norm_size = sizeof(float);
+    const int n_timers = 2;
+    CumulativeTimingInfo timeArray[3][n_timers];
+    CumulativeTimingInfo commArray[3][n_timers];
+    const char type1[] = "cpu";
+    const char type2[] = "shared";
+    const char type3[] = "global";
 
     // Allocate normalized value in host memory
     h_NormW = (float*)malloc(norm_size);
@@ -120,101 +176,180 @@ int main(int argc, char** argv) {
 
     // Initialize input matrix
     UploadArray(h_MatA, N);
-    InitOne(h_VecV, N);
+    for (int i = 0; i < n_timers; i++) {
+        InitOne(h_VecV, N);
 
-    printf("Power method in CPU starts\n");
-    clock_gettime(CLOCK_REALTIME, &t_start);
-    RunCPUPowerMethod();  // the lamda is already solved here
-    clock_gettime(CLOCK_REALTIME, &t_end);
-    runtime = (t_end.tv_sec - t_start.tv_sec) +
-              1e-9 * (t_end.tv_nsec - t_start.tv_nsec);
-    printf("CPU: run time = %f secs.\n", runtime);
-    printf("Power method in CPU is finished\n");
+        // printf("Power method in CPU starts\n");
+        // clock_gettime(CLOCK_REALTIME, &t_start);
+        startTimer(&timeArray[0][i]);
+        RunCPUPowerMethod();  // the lamda is already solved here
+        stopTimer(&timeArray[0][i]);
+        // clock_gettime(CLOCK_REALTIME, &t_end);
+        // runtime = (t_end.tv_sec - t_start.tv_sec) +
+        //           1e-9 * (t_end.tv_nsec - t_start.tv_nsec);
+        // printf("CPU: run time = %f secs.\n", runtime);
+        // printf("Power method in CPU is finished\n");
+    }
+    writeTimingInfoToCSV(timeArray[0], commArray[0], n_timers, type1);
 
     /////////////////////////////////////////////////
     // This is the starting points of GPU
-    printf("Power method in GPU starts\n");
+    // printf("Power method in GPU starts\n");
     checkCardVersion();
-
-    // Initialize input matrix
-    InitOne(h_VecV, N);
-
-    clock_gettime(CLOCK_REALTIME, &t_start);  // Here I start to count
-
     // Set the kernel arguments
     int threadsPerBlock = BLOCK_SIZE;
     int sharedMemSize = threadsPerBlock * threadsPerBlock *
                         sizeof(float);  // in per block, the memory is shared
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
 
-    // Allocate matrix and vectors in device memory
-    cudaMalloc((void**)&d_MatA, mat_size);
-    cudaMalloc((void**)&d_VecV, vec_size);
-    cudaMalloc((void**)&d_VecW,
-               vec_size);  // This vector is only used by the device
-    cudaMalloc((void**)&d_NormW, norm_size);
+    for (int j = 0; j < n_timers; j++) {
+        // clock_gettime(CLOCK_REALTIME, &t_start);  // Here I start to count
+        startTimer(&timeArray[1][j]);
+        // Allocate matrix and vectors in device memory
+        cudaMalloc((void**)&d_MatA, mat_size);
+        cudaMalloc((void**)&d_VecV, vec_size);
+        cudaMalloc((void**)&d_VecW,
+                   vec_size);  // This vector is only used by the device
+        cudaMalloc((void**)&d_NormW, norm_size);
+        // Initialize input matrix
+        InitOne(h_VecV, N);
 
-    // Copy from host memory to device memory
-    clock_gettime(CLOCK_REALTIME, &t_comm_start);
-    cudaMemcpy(d_MatA, h_MatA, mat_size, cudaMemcpyHostToDevice);
-    cudaMemcpy(d_VecV, h_VecV, vec_size, cudaMemcpyHostToDevice);
-    clock_gettime(CLOCK_REALTIME, &t_comm_end);
-    comm_time = (t_comm_end.tv_sec - t_comm_start.tv_sec) +
-                1e-9 * (t_comm_end.tv_nsec - t_comm_start.tv_nsec);
-    // cutilCheckError(cutStopTimer(timer_mem));
+        // Copy from host memory to device memory
+        // clock_gettime(CLOCK_REALTIME, &t_comm_start);
+        startTimer(&commArray[1][j]);
+        cudaMemcpy(d_MatA, h_MatA, mat_size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_VecV, h_VecV, vec_size, cudaMemcpyHostToDevice);
+        stopTimer(&commArray[1][j]);
+        // cutilCheckError(cutStopTimer(timer_mem));
 
-    // Power method loops
-    float old_lambda = 2 * EPS;
-    float lambda = 0;
-    *h_NormW = 0.;
-
-    for (int i = 0; i < max_iteration; i++) {
+        // Power method loops
+        float old_lambda = 2 * EPS;
+        float lambda = 0;
+        *h_NormW = 0.;
         Av_Product<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
             d_MatA, d_VecV, d_VecW, N);
         cudaDeviceSynchronize();
-        ComputeLambda<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
-            d_VecV, d_VecW, d_NormW, N);
-        cudaDeviceSynchronize();
 
-        clock_gettime(CLOCK_REALTIME, &t_comm_start);
-        cudaMemcpy(h_NormW, &lambda, norm_size, cudaMemcpyDeviceToHost);
-        clock_gettime(CLOCK_REALTIME, &t_comm_end);
-        comm_time += (t_comm_end.tv_sec - t_comm_start.tv_sec) +
-                     1e-9 * (t_comm_end.tv_nsec - t_comm_start.tv_nsec);
-        printf("GPU lambda at %d: %5.2f \n", i, lambda);
+        for (int i = 0; i < max_iteration; i++) {
+            FindNormW<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
+                d_VecW, d_NormW, N);
+            cudaDeviceSynchronize();
 
-        FindNormW<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
-            d_VecW, d_NormW, N);
-        cudaDeviceSynchronize();
+            // compute sqrt of norm
+            startTimer(&commArray[1][j]);
+            cudaMemcpy(h_NormW, d_NormW, norm_size, cudaMemcpyDeviceToHost);
+            *h_NormW = sqrt(*h_NormW);
+            cudaMemcpy(d_NormW, h_NormW, norm_size, cudaMemcpyHostToDevice);
+            stopTimer(&commArray[1][j]);
+            cudaDeviceSynchronize();
+            // normalize v
+            NormalizeW<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
+                d_VecW, d_NormW, d_VecV, N);
+            cudaDeviceSynchronize();
 
-        // compute sqrt of norm
-        clock_gettime(CLOCK_REALTIME, &t_comm_start);
-        cudaMemcpy(h_NormW, d_NormW, norm_size, cudaMemcpyDeviceToHost);
-        *h_NormW = sqrt(*h_NormW);
-        cudaMemcpy(d_NormW, h_NormW, norm_size, cudaMemcpyHostToDevice);
-        clock_gettime(CLOCK_REALTIME, &t_comm_end);
-        comm_time += (t_comm_end.tv_sec - t_comm_start.tv_sec) +
-                     1e-9 * (t_comm_end.tv_nsec - t_comm_start.tv_nsec);
-        cudaDeviceSynchronize();
-        // normalize v
-        NormalizeW<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
-            d_VecW, d_NormW, d_VecV, N);
-        cudaDeviceSynchronize();
+            Av_Product<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
+                d_MatA, d_VecV, d_VecW, N);
+            cudaDeviceSynchronize();
 
-        if (abs(old_lambda - lambda) < EPS) break;
-        old_lambda = lambda;
+            cudaMemset(d_NormW, 0, norm_size);  // store result in norm mem
+            ComputeLambda<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
+                d_VecV, d_VecW, d_NormW, N);
+            cudaDeviceSynchronize();
+
+            startTimer(&commArray[1][j]);
+            cudaMemcpy(&lambda, d_NormW, norm_size, cudaMemcpyDeviceToHost);
+            stopTimer(&commArray[1][j]);
+            printf("GPU lambda at %d: %5.2f \n", i, lambda);
+
+            if (abs(old_lambda - lambda) < EPS) break;
+            old_lambda = lambda;
+        }
+
+        // cudaMemcpy(h_MatA, d_MatA, mat_size, cudaMemcpyDeviceToHost);
+        // print_matrix(h_MatA, N);
+
+        // clock_gettime(CLOCK_REALTIME, &t_end);
+        stopTimer(&timeArray[1][j]);
+        // printf("GPU: run time: %f s, comm time: %f\n", runtime, comm_time);
+        // printf("Overall CPU Execution Time: %f (ms) \n",
+        // cutGetTimerValue(timer_CPU));
+        Cleanup();
     }
+    writeTimingInfoToCSV(timeArray[1], commArray[1], n_timers, type2);
 
-    // cudaMemcpy(h_MatA, d_MatA, mat_size, cudaMemcpyDeviceToHost);
-    // print_matrix(h_MatA, N);
+    // global memory
+    for (int j = 0; j < n_timers; ++j) {
+        // clock_gettime(CLOCK_REALTIME, &t_start);  // Here I start to count
+        startTimer(&timeArray[2][j]);
+        // Allocate matrix and vectors in device memory
+        cudaMalloc((void**)&d_MatA, mat_size);
+        cudaMalloc((void**)&d_VecV, vec_size);
+        cudaMalloc((void**)&d_VecW,
+                   vec_size);  // This vector is only used by the device
+        cudaMalloc((void**)&d_NormW, norm_size);
+        // Initialize input matrix
+        InitOne(h_VecV, N);
 
-    clock_gettime(CLOCK_REALTIME, &t_end);
-    runtime = (t_end.tv_sec - t_start.tv_sec) +
-              1e-9 * (t_end.tv_nsec - t_start.tv_nsec) - comm_time;
-    printf("GPU: run time: %f s, comm time: %f\n", runtime, comm_time);
-    // printf("Overall CPU Execution Time: %f (ms) \n",
-    // cutGetTimerValue(timer_CPU));
+        // Copy from host memory to device memory
+        // clock_gettime(CLOCK_REALTIME, &t_comm_start);
+        startTimer(&commArray[2][j]);
+        cudaMemcpy(d_MatA, h_MatA, mat_size, cudaMemcpyHostToDevice);
+        cudaMemcpy(d_VecV, h_VecV, vec_size, cudaMemcpyHostToDevice);
+        stopTimer(&commArray[2][j]);
+        // cutilCheckError(cutStopTimer(timer_mem));
 
+        // Power method loops
+        float old_lambda = 2 * EPS;
+        float lambda = 0;
+        *h_NormW = 0.;
+        Global_Av_Product<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
+            d_MatA, d_VecV, d_VecW, N);
+        cudaDeviceSynchronize();
+
+        for (int i = 0; i < max_iteration; i++) {
+            Global_FindNormW<<<blocksPerGrid, threadsPerBlock, sharedMemSize>>>(
+                d_VecW, d_NormW, N);
+            cudaDeviceSynchronize();
+
+            // compute sqrt of norm
+            startTimer(&commArray[2][j]);
+            cudaMemcpy(h_NormW, d_NormW, norm_size, cudaMemcpyDeviceToHost);
+            *h_NormW = sqrt(*h_NormW);
+            cudaMemcpy(d_NormW, h_NormW, norm_size, cudaMemcpyHostToDevice);
+            stopTimer(&commArray[2][j]);
+            cudaDeviceSynchronize();
+            // normalize v
+            Global_NormalizeW<<<blocksPerGrid, threadsPerBlock,
+                                sharedMemSize>>>(d_VecW, d_NormW, d_VecV, N);
+            cudaDeviceSynchronize();
+
+            Global_Av_Product<<<blocksPerGrid, threadsPerBlock,
+                                sharedMemSize>>>(d_MatA, d_VecV, d_VecW, N);
+            cudaDeviceSynchronize();
+
+            cudaMemset(d_NormW, 0, norm_size);  // store result in norm mem
+            Global_ComputeLambda<<<blocksPerGrid, threadsPerBlock,
+                                   sharedMemSize>>>(d_VecV, d_VecW, d_NormW, N);
+            cudaDeviceSynchronize();
+
+            startTimer(&commArray[2][j]);
+            cudaMemcpy(&lambda, d_NormW, norm_size, cudaMemcpyDeviceToHost);
+            stopTimer(&commArray[2][j]);
+            printf("GPU lambda at %d: %5.2f \n", i, lambda);
+
+            if (abs(old_lambda - lambda) < EPS) break;
+            old_lambda = lambda;
+        }
+
+        // cudaMemcpy(h_MatA, d_MatA, mat_size, cudaMemcpyDeviceToHost);
+        // print_matrix(h_MatA, N);
+
+        stopTimer(&timeArray[2][j]);
+        // printf("GPU: run time: %f s, comm time: %f\n", runtime, comm_time);
+        // printf("Overall CPU Execution Time: %f (ms) \n",
+        // cutGetTimerValue(timer_CPU));
+    }
+    writeTimingInfoToCSV(timeArray[2], commArray[2], n_timers, type3);
     Cleanup();
 }
 
@@ -447,4 +582,59 @@ __global__ void ComputeLambda(float* g_VecV, float* g_VecW, float* g_Lamda,
     }
     // atomic operations:
     if (tid == 0) atomicAdd(g_Lamda, sdataVW[0]);
+}
+
+// Global memory only
+
+__global__ void Global_Av_Product(float* g_MatA, float* g_VecV, float* g_VecW,
+                                  int N) {
+    int bx = blockIdx.x;
+    int tx = threadIdx.x;
+
+    int aBegin = N * BLOCK_SIZE * bx;
+    int aEnd = aBegin + N - 1;
+    int step = BLOCK_SIZE;
+
+    int bBegin = 0;
+    int bIndex = 0;
+    int aIndex = 0;
+    float Csub = 0;
+
+    for (int a = aBegin, b = bBegin; a <= aEnd; a += step, b += step) {
+        for (int aa = 0; aa < BLOCK_SIZE; aa += 1) {
+            aIndex = a + tx + aa * N;
+            if (aIndex < N * N)
+                Csub += g_MatA[aIndex] * g_VecV[b + tx + aa * N];
+        }
+    }
+
+    g_VecW[BLOCK_SIZE * bx + tx] = Csub;
+}
+
+__global__ void Global_FindNormW(float* g_VecW, float* g_NormW, int N) {
+    unsigned int globalid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (globalid < N) {
+        float val = g_VecW[globalid];
+        atomicAdd(g_NormW, val * val);
+    }
+}
+
+__global__ void Global_NormalizeW(float* g_VecW, float* g_NormW, float* g_VecV,
+                                  int N) {
+    unsigned int globalid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (globalid < N) {
+        float norm = sqrt(g_NormW[0]);
+        g_VecV[globalid] = g_VecW[globalid] / norm;
+    }
+}
+
+__global__ void Global_ComputeLambda(float* g_VecV, float* g_VecW,
+                                     float* g_Lamda, int N) {
+    unsigned int globalid = blockIdx.x * blockDim.x + threadIdx.x;
+
+    if (globalid < N) {
+        g_Lamda[0] += g_VecV[globalid] * g_VecW[globalid];
+    }
 }
