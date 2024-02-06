@@ -1,0 +1,30 @@
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.051 s; in comm.: 0.004 s (7.6%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.052 s; in comm.: 0.004 s (8.1%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.053 s; in comm.: 0.005 s (9.3%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.052 s; in comm.: 0.004 s (7.9%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.053 s; in comm.: 0.005 s (9.0%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.053 s; in comm.: 0.005 s (9.4%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.053 s; in comm.: 0.005 s (8.9%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.054 s; in comm.: 0.005 s (9.8%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.053 s; in comm.: 0.005 s (9.8%); per iter: 0.000 s
+Number of iterations: 541, omega: 1.93, grid size: 200
+Delta: 0.000091
+(0) Total time: 0.053 s; in comm.: 0.005 s (9.8%); per iter: 0.000 s

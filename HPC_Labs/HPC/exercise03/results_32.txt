@@ -1,100 +1,85 @@
-Matrix size 50 X 50
-Power method in CPU starts
-*************************************
-CPU lamda at 0: 2039.504395
-CPU lamda at 1: 2502.271973
-CPU lamda at 2: 2505.832764
-CPU lamda at 3: 2505.770264
-CPU lamda at 4: 2505.772461
-CPU lamda at 5: 2505.772705
-CPU lamda at 6: 2505.771729
-CPU lamda at 7: 2505.771729
-*************************************
-CPU: run time = 0.000097 secs.
-Power method in CPU is finished
-Power method in GPU starts
-This GPU has major architecture 7, minor 0
-GPU lambda at 0: 489.06
-GPU lambda at 1: 2276.41
-GPU lambda at 2: 2504.26
-GPU lambda at 3: 2505.89
-GPU lambda at 4: 2505.77
-GPU lambda at 5: 2505.77
-GPU lambda at 6: 2505.77
-GPU lambda at 7: 2505.77
-GPU: run time: 0.114434 s, comm time: 0.000406
-Matrix size 500 X 500
-Power method in CPU starts
-*************************************
-CPU lamda at 0: 18107.144531
-CPU lamda at 1: 24970.935547
-CPU lamda at 2: 24977.232422
-CPU lamda at 3: 24977.267578
-CPU lamda at 4: 24977.236328
-CPU lamda at 5: 24977.240234
-CPU lamda at 6: 24977.232422
-CPU lamda at 7: 24977.238281
-CPU lamda at 8: 24977.238281
-*************************************
-CPU: run time = 0.008881 secs.
-Power method in CPU is finished
-Power method in GPU starts
-This GPU has major architecture 7, minor 0
-GPU lambda at 0: 1293.52
-GPU lambda at 1: 21279.61
-GPU lambda at 2: 24973.98
-GPU lambda at 3: 24977.34
-GPU lambda at 4: 24977.24
-GPU lambda at 5: 24977.24
-GPU lambda at 6: 24977.24
-GPU lambda at 7: 24977.24
-GPU: run time: 0.105854 s, comm time: 0.000633
-Matrix size 2000 X 2000
-Power method in CPU starts
-*************************************
-CPU lamda at 0: 74132.226562
-CPU lamda at 1: 100012.015625
-CPU lamda at 2: 100018.289062
-CPU lamda at 3: 100018.335938
-CPU lamda at 4: 100018.367188
-CPU lamda at 5: 100018.351562
-CPU lamda at 6: 100018.351562
-*************************************
-CPU: run time = 0.107450 secs.
-Power method in CPU is finished
-Power method in GPU starts
-This GPU has major architecture 7, minor 0
-GPU lambda at 0: 2593.64
-GPU lambda at 1: 86102.55
-GPU lambda at 2: 100015.34
-GPU lambda at 3: 100018.37
-GPU lambda at 4: 100018.30
-GPU lambda at 5: 100018.30
-GPU: run time: 0.123544 s, comm time: 0.001901
-[spetznick@login02 HPC_Labs]$ ./run03.sh
-nvcc - o power_gpu.x power_gpu.cu
-Submitted batch job 3103116
-[spetznick@login02 HPC_Labs]$ cat HPC/out/power_gpu_3103116.out
-Matrix size 4000 X 4000
-Power method in CPU starts
-*************************************
-CPU lamda at 0: 149044.796875
-CPU lamda at 1: 199991.171875
-CPU lamda at 2: 199997.906250
-CPU lamda at 3: 199997.906250
-*************************************
-CPU: run time = 0.268277 secs.
-Power method in CPU is finished
-Power method in GPU starts
-This GPU has major architecture 7, minor 0
-GPU lambda at 0: 3706.55
-GPU lambda at 1: 172649.09
-GPU lambda at 2: 199994.95
-GPU lambda at 3: 199997.70
-GPU lambda at 4: 199997.67
-GPU lambda at 5: 199997.64
-GPU lambda at 6: 199997.61
-GPU lambda at 7: 199997.67
-GPU lambda at 8: 199997.64
-GPU lambda at 9: 199997.64
-GPU: run time: 0.118088 s, comm time: 0.005919
+Global Size,Block Size,Time,Comm Time,Memory Type
+50,32,100829,0,cpu
+50,32,99410,0,cpu
+50,32,1052733,203323,shared
+50,32,508751,137897,shared
+50,32,639689,160187,global
+50,32,7196701,1998552,global
+500,32,17470995,0,cpu
+500,32,17407639,0,cpu
+500,32,2058255,605094,shared
+500,32,1123043,570613,shared
+500,32,1214031,504915,global
+500,32,15368839,4712431,global
+2000,32,140747919,0,cpu
+2000,32,140309992,0,cpu
+2000,32,6008193,3861525,shared
+2000,32,5873858,3976562,shared
+2000,32,44442113,5834772,global
+2000,32,43919727,5903914,global
+4000,32,349825339,0,cpu
+4000,32,363055025,0,cpu
+4000,32,23760620,14930493,shared
+4000,32,32858052,15281078,shared
+4000,32,92537860,16741992,global
+4000,32,91612046,16131480,global
+50,64,152589,0,cpu
+50,64,158231,0,cpu
+50,64,1048248,168110,shared
+50,64,468823,121193,shared
+50,64,422660,106709,global
+50,64,160295,48185,global
+500,64,10741160,0,cpu
+500,64,10738799,0,cpu
+500,64,1779180,478046,shared
+500,64,2084829,643027,shared
+500,64,1150171,407673,global
+500,64,12333421,2186551,global
+1000,64,41821311,0,cpu
+1000,64,41328528,0,cpu
+1000,64,2764275,1295999,shared
+1000,64,2464698,1221354,shared
+1000,64,22759447,3660708,global
+1000,64,24998143,4263097,global
+2000,64,137452955,0,cpu
+2000,64,137419549,0,cpu
+2000,64,6586291,4096921,shared
+2000,64,6848704,4230478,shared
+2000,64,43293248,5715193,global
+2000,64,42663146,5366616,global
+4000,64,565895910,0,cpu
+4000,64,563939241,0,cpu
+4000,64,25851003,16077331,shared
+4000,64,32849831,16078806,shared
+4000,64,89974162,16054464,global
+4000,64,89873408,16096377,global
+50,100,100742,0,cpu
+50,100,99512,0,cpu
+50,100,99242852,1929667,shared
+50,100,5678107,1848503,shared
+50,100,249752,52890,global
+50,100,171474,47788,global
+500,100,10705449,0,cpu
+500,100,11336879,0,cpu
+500,100,6411419,2156905,shared
+500,100,6013477,2212289,shared
+500,100,767779,356708,global
+500,100,636456,322843,global
+1000,100,46162331,0,cpu
+1000,100,50358152,0,cpu
+1000,100,10213346,4767490,shared
+1000,100,7409174,3231447,shared
+1000,100,1996628,1226226,global
+1000,100,2799366,1250642,global
+2000,100,138587203,0,cpu
+2000,100,142326963,0,cpu
+2000,100,10054791,5682538,shared
+2000,100,9181584,5359694,shared
+2000,100,48401761,6035548,global
+2000,100,46731496,5446423,global
+4000,100,361259765,0,cpu
+4000,100,351605259,0,cpu
+4000,100,20472568,16103263,shared
+4000,100,19713640,15874689,shared
+4000,100,19967396,14255292,global
+4000,100,97255851,16198532,global

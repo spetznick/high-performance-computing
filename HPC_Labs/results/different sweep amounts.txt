@@ -1,0 +1,45 @@
+mpirun -n 4 mpi_poisson_sweeps 4 1 1.93 input800.dat 1
+Number of iterations: 3601, omega: 1.93, grid size: 800
+Delta: 0.000100
+
+mpirun -n 4 mpi_poisson_sweeps 4 1 1.93 input800.dat 2
+Number of iterations: 5000, omega: 1.93, grid size: 800
+Delta: 0.000110
+
+mpirun -n 4 mpi_poisson_sweeps 4 1 1.93 input800.dat 4
+Number of iterations: 5000, omega: 1.93, grid size: 800
+Delta: 0.000183
+Max number of iterations reached.
+
+Num. iterations: 1000, omega: 1.93, grid size: 800, sweeps: 5
+Delta: 3901983893432803861811690625852542513761995526549468788248117431332040012970540301076497691840395791014944062724127054266105856.000000
+Max number of iterations reached.
+
+Num. iterations: 625, omega: 1.93, grid size: 800, sweeps: 8
+Delta: 89989021519976856257789097050789505639956600406329188679680.000000
+Max number of iterations reached.
+
+Num. iterations: 455, omega: 1.93, grid size: 800, sweeps: 11
+Delta: 48249964413981196288.000000
+Max number of iterations reached.
+
+Num. iterations: 358, omega: 1.93, grid size: 800, sweeps: 14
+Delta: 1.159292
+Max number of iterations reached.
+
+Num. iterations: 295, omega: 1.93, grid size: 800, sweeps: 17
+Delta: 0.005044
+Max number of iterations reached.
+
+Num. iterations: 250, omega: 1.93, grid size: 800, sweeps: 20
+Delta: 0.000709
+Max number of iterations reached.
+
+Num. iterations: 218, omega: 1.93, grid size: 800, sweeps: 23
+Delta: 0.000651
+Max number of iterations reached.
+
+Num. iterations: 193, omega: 1.93, grid size: 800, sweeps: 26
+Delta: 0.000655
+Max number of iterations reached.
+

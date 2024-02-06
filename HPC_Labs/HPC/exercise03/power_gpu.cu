@@ -10,7 +10,7 @@
 
 #include "cuda.h"
 
-const int BLOCK_SIZE = 64;  // number of threads per block
+const int BLOCK_SIZE = 32;  // number of threads per block
 
 // Input Array Variables
 float* h_MatA = NULL;
@@ -29,6 +29,7 @@ int GlobalSize =
     50;  // this is the dimension of the matrix, GlobalSize*GlobalSize
 const float EPS = 0.000005;  // tolerence of the error
 int max_iteration = 100;     // the maximum iteration steps
+const int n_timers = 2;      //
 
 //
 #include <stdio.h>
@@ -139,7 +140,7 @@ void RunCPUPowerMethod() {
         CPU_NormalizeW();
         CPU_AvProduct();
         lamda = CPU_ComputeLamda();
-        printf("CPU lamda at %d: %f \n", i, lamda);
+        // printf("CPU lamda at %d: %f \n", i, lamda);
         // If residual is lass than epsilon break
         if (abs(oldLamda - lamda) < EPS) break;
         oldLamda = lamda;
@@ -158,9 +159,9 @@ int main(int argc, char** argv) {
     size_t vec_size = N * sizeof(float);
     size_t mat_size = N * N * sizeof(float);
     size_t norm_size = sizeof(float);
-    const int n_timers = 2;
-    CumulativeTimingInfo timeArray[3][n_timers];
-    CumulativeTimingInfo commArray[3][n_timers];
+
+    CumulativeTimingInfo timeArray[3][n_timers] = {0};
+    CumulativeTimingInfo commArray[3][n_timers] = {0};
     const char type1[] = "cpu";
     const char type2[] = "shared";
     const char type3[] = "global";
@@ -178,49 +179,36 @@ int main(int argc, char** argv) {
     UploadArray(h_MatA, N);
     for (int i = 0; i < n_timers; i++) {
         InitOne(h_VecV, N);
-
-        // printf("Power method in CPU starts\n");
-        // clock_gettime(CLOCK_REALTIME, &t_start);
         startTimer(&timeArray[0][i]);
         RunCPUPowerMethod();  // the lamda is already solved here
         stopTimer(&timeArray[0][i]);
-        // clock_gettime(CLOCK_REALTIME, &t_end);
-        // runtime = (t_end.tv_sec - t_start.tv_sec) +
-        //           1e-9 * (t_end.tv_nsec - t_start.tv_nsec);
-        // printf("CPU: run time = %f secs.\n", runtime);
-        // printf("Power method in CPU is finished\n");
     }
     writeTimingInfoToCSV(timeArray[0], commArray[0], n_timers, type1);
 
-    /////////////////////////////////////////////////
     // This is the starting points of GPU
-    // printf("Power method in GPU starts\n");
     checkCardVersion();
     // Set the kernel arguments
     int threadsPerBlock = BLOCK_SIZE;
     int sharedMemSize = threadsPerBlock * threadsPerBlock *
                         sizeof(float);  // in per block, the memory is shared
     int blocksPerGrid = (N + threadsPerBlock - 1) / threadsPerBlock;
+    // Allocate matrix and vectors in device memory
+    cudaMalloc((void**)&d_MatA, mat_size);
+    cudaMalloc((void**)&d_VecV, vec_size);
+    cudaMalloc((void**)&d_VecW,
+               vec_size);  // This vector is only used by the device
+    cudaMalloc((void**)&d_NormW, norm_size);
 
     for (int j = 0; j < n_timers; j++) {
-        // clock_gettime(CLOCK_REALTIME, &t_start);  // Here I start to count
         startTimer(&timeArray[1][j]);
-        // Allocate matrix and vectors in device memory
-        cudaMalloc((void**)&d_MatA, mat_size);
-        cudaMalloc((void**)&d_VecV, vec_size);
-        cudaMalloc((void**)&d_VecW,
-                   vec_size);  // This vector is only used by the device
-        cudaMalloc((void**)&d_NormW, norm_size);
         // Initialize input matrix
         InitOne(h_VecV, N);
 
         // Copy from host memory to device memory
-        // clock_gettime(CLOCK_REALTIME, &t_comm_start);
         startTimer(&commArray[1][j]);
         cudaMemcpy(d_MatA, h_MatA, mat_size, cudaMemcpyHostToDevice);
         cudaMemcpy(d_VecV, h_VecV, vec_size, cudaMemcpyHostToDevice);
         stopTimer(&commArray[1][j]);
-        // cutilCheckError(cutStopTimer(timer_mem));
 
         // Power method loops
         float old_lambda = 2 * EPS;
@@ -259,44 +247,26 @@ int main(int argc, char** argv) {
             startTimer(&commArray[1][j]);
             cudaMemcpy(&lambda, d_NormW, norm_size, cudaMemcpyDeviceToHost);
             stopTimer(&commArray[1][j]);
-            printf("GPU lambda at %d: %5.2f \n", i, lambda);
 
             if (abs(old_lambda - lambda) < EPS) break;
             old_lambda = lambda;
         }
 
-        // cudaMemcpy(h_MatA, d_MatA, mat_size, cudaMemcpyDeviceToHost);
-        // print_matrix(h_MatA, N);
-
-        // clock_gettime(CLOCK_REALTIME, &t_end);
         stopTimer(&timeArray[1][j]);
-        // printf("GPU: run time: %f s, comm time: %f\n", runtime, comm_time);
-        // printf("Overall CPU Execution Time: %f (ms) \n",
-        // cutGetTimerValue(timer_CPU));
-        Cleanup();
     }
     writeTimingInfoToCSV(timeArray[1], commArray[1], n_timers, type2);
 
+    cudaMemset(d_NormW, 0, norm_size);  // store result in norm mem
     // global memory
     for (int j = 0; j < n_timers; ++j) {
-        // clock_gettime(CLOCK_REALTIME, &t_start);  // Here I start to count
         startTimer(&timeArray[2][j]);
-        // Allocate matrix and vectors in device memory
-        cudaMalloc((void**)&d_MatA, mat_size);
-        cudaMalloc((void**)&d_VecV, vec_size);
-        cudaMalloc((void**)&d_VecW,
-                   vec_size);  // This vector is only used by the device
-        cudaMalloc((void**)&d_NormW, norm_size);
-        // Initialize input matrix
         InitOne(h_VecV, N);
 
         // Copy from host memory to device memory
-        // clock_gettime(CLOCK_REALTIME, &t_comm_start);
         startTimer(&commArray[2][j]);
         cudaMemcpy(d_MatA, h_MatA, mat_size, cudaMemcpyHostToDevice);
         cudaMemcpy(d_VecV, h_VecV, vec_size, cudaMemcpyHostToDevice);
         stopTimer(&commArray[2][j]);
-        // cutilCheckError(cutStopTimer(timer_mem));
 
         // Power method loops
         float old_lambda = 2 * EPS;
@@ -335,19 +305,12 @@ int main(int argc, char** argv) {
             startTimer(&commArray[2][j]);
             cudaMemcpy(&lambda, d_NormW, norm_size, cudaMemcpyDeviceToHost);
             stopTimer(&commArray[2][j]);
-            printf("GPU lambda at %d: %5.2f \n", i, lambda);
+            // printf("GPU lambda at %d: %5.2f \n", i, lambda);
 
             if (abs(old_lambda - lambda) < EPS) break;
             old_lambda = lambda;
         }
-
-        // cudaMemcpy(h_MatA, d_MatA, mat_size, cudaMemcpyDeviceToHost);
-        // print_matrix(h_MatA, N);
-
         stopTimer(&timeArray[2][j]);
-        // printf("GPU: run time: %f s, comm time: %f\n", runtime, comm_time);
-        // printf("Overall CPU Execution Time: %f (ms) \n",
-        // cutGetTimerValue(timer_CPU));
     }
     writeTimingInfoToCSV(timeArray[2], commArray[2], n_timers, type3);
     Cleanup();

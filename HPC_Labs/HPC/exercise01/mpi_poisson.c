@@ -35,7 +35,6 @@ double omega = 1.0;
 /* benchmark related variables */
 clock_t ticks;    /* number of systemticks */
 int timer_on = 0; /* is timer running? */
-struct timespec t_start, t_end, t_comm_start, t_comm_end;
 double errors_over_iteration[5000];
 
 /* local grid related variables */
@@ -113,8 +112,8 @@ void writeTimingInfoToCSV(CumulativeTimingInfo *timeArray,
     for (int i = 0; i < n_timers; ++i) {
         fprintf(csvFile, "%d,%d,%d,%d,%d,%f,%f,%f\n", proc_rank,
                 proc_dim[X_DIR], proc_dim[Y_DIR], gridsize[X_DIR],
-                gridsize[Y_DIR], (double)timeArray[i].total_elapsed_ns / 1e-9,
-                (double)commArray[i].total_elapsed_ns / 1e-9, omega);
+                gridsize[Y_DIR], (double)timeArray[i].total_elapsed_ns * 1e-9,
+                (double)commArray[i].total_elapsed_ns * 1e-9, omega);
     }
 
     fclose(csvFile);
